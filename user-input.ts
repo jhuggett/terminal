@@ -1,41 +1,41 @@
-import { isLowercaseCharacter, isLowercaseOrUppercaseCharacter, isUppercaseCharacter } from "./escape-codes/keys.ts"
+import {
+  isLowercaseCharacter,
+  isLowercaseOrUppercaseCharacter,
+  isUppercaseCharacter,
+  Keys,
+} from "./escape-codes/keys.ts";
 import { Key } from "./export.ts";
-import { Shell } from "./shells/shell.ts"
+import { Shell } from "./shells/shell.ts";
 
-type AvailibleKeyCode = typeof Key[keyof typeof Key]
+const isAvailableKeyCode = (code: string): code is keyof typeof Keys => {
+  return Object.keys(Keys).includes(code as Key);
+};
 
-const isAvailibleKeyCode = (code: string) : code is AvailibleKeyCode => {
-  return Object.values(Key).includes(code as AvailibleKeyCode)
-}
+export class UnknownKeyCodeError extends Error {}
 
-const ERROR_CODES = {
-  unkownKeyCode: 'unknown-key-code'
-}
+type OtherUserInputKeys =
+  | "Any lowercase character"
+  | "Any uppercase character"
+  | "Any character"
+  | "Any key";
 
-class UnkownKeyCodeError extends Error {
-  errorCode = ERROR_CODES.unkownKeyCode
-  constructor(msg: string) {
-    super(msg)
-  }
-}
+type InputInformation = {
+  key: string;
+};
 
-export const isUnkownKeyCodeError = (err: any): err is UnkownKeyCodeError => {
-  return err.errorCode === ERROR_CODES.unkownKeyCode
-}
+export const userInput = async (
+  shell: Shell,
+  targets: Partial<
+    Record<Key | OtherUserInputKeys, (info: InputInformation) => void>
+  >
+) => {
+  const bytes = await shell.keypress();
+  const byteArray = Array.from(bytes.values());
+  const stringRepresentation = byteArray
+    .map((byte) => byte.toString())
+    .join(".");
 
-export const userInput = async (shell: Shell, targets: {
-  specific?: Map<AvailibleKeyCode, () => void>
-  lowercaseCharacter?: (character: string) => void
-  uppercaseCharacter?: (character: string) => void
-  anyCharacter?: (character: string) => void
-  any?: () => void
-}) => {
-  const bytes = await shell.keypress()
-
-  const byteArray = Array.from(bytes.values())
-  const stringRepresentation = byteArray.map(byte => byte.toString()).join('.')
-
-  if (!isAvailibleKeyCode(stringRepresentation)) {
+  if (!isAvailableKeyCode(stringRepresentation)) {
     /*
       The bytes returned from shell.keypress() can contain more than one keypress.
       This can happen if the user spams multiple keys.
@@ -47,23 +47,33 @@ export const userInput = async (shell: Shell, targets: {
       For now, throw this error that the user can catch.
       Seems to work well enough.
     */
-    throw new UnkownKeyCodeError(`Unknown Key Code: ${bytes}`)
+    throw new UnknownKeyCodeError(`Unknown Key Code: ${bytes}`);
   }
 
-  const specificTarget = targets.specific?.get(stringRepresentation)
-  if (specificTarget) return specificTarget()
+  const key = Keys[stringRepresentation];
 
-  if (targets.lowercaseCharacter && isLowercaseCharacter(byteArray)) {
-    return targets.lowercaseCharacter((new TextDecoder()).decode(bytes))
+  const info: InputInformation = {
+    key,
+  };
+
+  const specificTarget = targets[key];
+  if (specificTarget) return specificTarget(info);
+
+  const anyLowercaseCharacter = targets["Any lowercase character"];
+  if (anyLowercaseCharacter && isLowercaseCharacter(byteArray)) {
+    return anyLowercaseCharacter(info);
   }
 
-  if (targets.uppercaseCharacter && isUppercaseCharacter(byteArray)) {
-    return targets.uppercaseCharacter((new TextDecoder()).decode(bytes))
+  const anyUppercaseCharacter = targets["Any uppercase character"];
+  if (anyUppercaseCharacter && isUppercaseCharacter(byteArray)) {
+    return anyUppercaseCharacter(info);
   }
 
-  if (targets.anyCharacter && isLowercaseOrUppercaseCharacter(byteArray)) {
-    return targets.anyCharacter((new TextDecoder()).decode(bytes))
+  const anyCharacter = targets["Any character"];
+  if (anyCharacter && isLowercaseOrUppercaseCharacter(byteArray)) {
+    return anyCharacter(info);
   }
 
-  if (targets.any) return targets.any()
-}
+  const anyKey = targets["Any key"];
+  if (anyKey) return anyKey(info);
+};

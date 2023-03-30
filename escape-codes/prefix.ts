@@ -1,1 +1,1 @@
-export const ESCAPE_CODE = `\u001b[`
+export const ESCAPE_CODE = `\u001b[`;
