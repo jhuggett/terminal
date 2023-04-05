@@ -2,9 +2,9 @@ import {
   isLowercaseCharacter,
   isLowercaseOrUppercaseCharacter,
   isUppercaseCharacter,
+  Key,
   Keys,
 } from "./escape-codes/keys.ts";
-import { Key } from "./export.ts";
 import { Shell } from "./shells/shell.ts";
 
 const isAvailableKeyCode = (code: string): code is keyof typeof Keys => {
