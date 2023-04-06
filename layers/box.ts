@@ -1,7 +1,7 @@
-import { multidimensionalRange } from "../../structures-and-algorithms/range.ts";
+import { multidimensionalRange } from "../deps.ts";
 import { CompoundZIndex, Point } from "../point.ts";
 import { Shell } from "../shells/shell.ts";
-import { XY, XYSet, XYToString } from "../xy.ts";
+import { XY, XYSet } from "../xy.ts";
 import { Layer } from "./layer.ts";
 
 type ComputedOrConstantNumber = number | (() => number);
