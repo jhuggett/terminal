@@ -2,6 +2,12 @@ import { CompoundZIndex, Point } from "../point.ts";
 import { Shell } from "../shells/shell.ts";
 import { XY } from "../xy.ts";
 
+export class OutOfBoundsError extends Error {
+  constructor(msg: string, public axis: "x" | "y") {
+    super(msg);
+  }
+}
+
 export abstract class Layer {
   abstract get width(): number;
   abstract get height(): number;
@@ -34,8 +40,10 @@ export abstract class Layer {
     if (point.character.length !== 1)
       throw new Error(`Invalid point character: "${point.character}".`);
     const { x, y } = point.coordinate;
-    if (x < 0 || x >= this.width || y < 0 || y >= this.height)
-      throw new Error(`Point is out of bounds for layer.`);
+    if (x < 0 || x >= this.width)
+      throw new OutOfBoundsError(`Point is out of bounds for layer.`, "x");
+    if (y < 0 || y >= this.height)
+      throw new OutOfBoundsError(`Point is out of bounds for layer.`, "y");
 
     const translatedPoint: Point = {
       ...point,
