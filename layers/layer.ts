@@ -36,14 +36,23 @@ export abstract class Layer {
     };
   }
 
+  verifyXWithinBounds(x: number) {
+    if (x < 0 || x >= this.width)
+      throw new OutOfBoundsError(`Point is out of bounds for layer.`, "x");
+  }
+
+  verifyYWithinBounds(y: number) {
+    if (y < 0 || y >= this.height)
+      throw new OutOfBoundsError(`Point is out of bounds for layer.`, "y");
+  }
+
   protected set(point: Omit<Point, "zIndex">) {
     if (point.character.length !== 1)
       throw new Error(`Invalid point character: "${point.character}".`);
     const { x, y } = point.coordinate;
-    if (x < 0 || x >= this.width)
-      throw new OutOfBoundsError(`Point is out of bounds for layer.`, "x");
-    if (y < 0 || y >= this.height)
-      throw new OutOfBoundsError(`Point is out of bounds for layer.`, "y");
+
+    this.verifyXWithinBounds(x);
+    this.verifyYWithinBounds(y);
 
     const translatedPoint: Point = {
       ...point,

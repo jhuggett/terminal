@@ -176,6 +176,10 @@ export class Box extends Layer {
         x: coordinate.x + (by.x || 0),
         y: coordinate.y + (by.y || 0),
       };
+
+      this.verifyXWithinBounds(shiftedCoordinate.x);
+      this.verifyYWithinBounds(shiftedCoordinate.y);
+
       shiftedPointSet.add(shiftedCoordinate);
       shiftedPoints.push({ ...point, coordinate: shiftedCoordinate });
     }
