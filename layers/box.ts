@@ -206,7 +206,7 @@ export class Box extends Layer {
    *
    * Pass a ROW number to clear that row.
    *
-   * Pass an X and X to clear that coordinate.
+   * Pass an X and Y to clear that coordinate.
    *
    * Pass a FROM coordinate to clear all points between FROM to the bottom left corner.
    *
@@ -274,6 +274,7 @@ export class Box extends Layer {
    *  - If greater than 1, it represent a fix offset
    *  - If one of available string literals, should be self explanatory
    */
+  protected layerIncrement = 0;
   newLayer({
     width,
     height,
@@ -287,7 +288,7 @@ export class Box extends Layer {
   }) {
     const box = new Box({
       shell: this.shell,
-      zIndex: new CompoundZIndex([...this.zIndex.indexes, 0]),
+      zIndex: new CompoundZIndex([...this.zIndex.indexes, this.layerIncrement]),
     });
 
     if (width) {
@@ -313,10 +314,10 @@ export class Box extends Layer {
     if (xOffset) {
       if (xOffset === "middle") {
         box.computedOrConstantXOffset = () =>
-          Math.floor(this.width / 2 - box.width / 2);
+          Math.floor(this.width / 2 - box.width / 2 + this.xOffset);
       } else if (xOffset === "right") {
         box.computedOrConstantXOffset = () =>
-          Math.floor(this.width - box.width);
+          Math.floor(this.width - box.width + this.xOffset);
       } else if (xOffset < 1) {
         box.computedOrConstantXOffset = () => Math.floor(this.width * xOffset);
       } else {
@@ -329,10 +330,10 @@ export class Box extends Layer {
     if (yOffset) {
       if (yOffset === "middle") {
         box.computedOrConstantYOffset = () =>
-          Math.floor(this.height / 2 - box.height / 2);
+          Math.floor(this.height / 2 - box.height / 2 + this.yOffset);
       } else if (yOffset === "bottom") {
         box.computedOrConstantYOffset = () =>
-          Math.floor(this.height - box.height);
+          Math.floor(this.height - box.height + this.yOffset);
       } else if (yOffset < 1) {
         box.computedOrConstantYOffset = () => Math.floor(this.height * yOffset);
       } else {
@@ -342,27 +343,120 @@ export class Box extends Layer {
       box.computedOrConstantYOffset = this.yOffset;
     }
 
+    this.layerIncrement++;
     return box;
   }
 
-  splitVertically() {
+  /**
+   * For either top or bottom respectively:
+   *  - if number is 1 or more, it is a constant height.
+   *  - if number is greater than 0 but less than one, it
+   *    is that percent of available space.
+   *
+   * If neither top nor bottom are specified, they are
+   * divided equally.
+   */
+  splitVertically(options: { topHeight?: number } | { bottomHeight?: number }) {
+    if ("topHeight" in options && options.topHeight !== undefined) {
+      const { topHeight } = options;
+
+      const height =
+        topHeight < 1 && topHeight > 0
+          ? Math.round(topHeight * this.height)
+          : topHeight;
+
+      if (height < 0 || height >= this.height)
+        throw new Error(
+          `Split for top with height of ${height} is outside of parent's height (0, ${this.height}).`
+        );
+
+      const top = new Box({
+        computedOrConstantWidth: () => this.width,
+        computedOrConstantHeight: () => height,
+        computedOrConstantXOffset: () => this.xOffset,
+        computedOrConstantYOffset: () => this.yOffset,
+        shell: this.shell,
+        zIndex: new CompoundZIndex([
+          ...this.zIndex.indexes,
+          this.layerIncrement,
+        ]),
+      });
+      this.layerIncrement++;
+      const bottom = new Box({
+        computedOrConstantWidth: () => this.width,
+        computedOrConstantHeight: () => this.height - height,
+        computedOrConstantXOffset: () => this.xOffset,
+        computedOrConstantYOffset: () => this.yOffset + top.height,
+        shell: this.shell,
+        zIndex: new CompoundZIndex([
+          ...this.zIndex.indexes,
+          this.layerIncrement,
+        ]),
+      });
+      this.layerIncrement++;
+
+      return { top, bottom };
+    }
+
+    if ("bottomHeight" in options && options.bottomHeight !== undefined) {
+      const { bottomHeight } = options;
+
+      const height =
+        bottomHeight < 1 && bottomHeight > 0
+          ? Math.round(bottomHeight * this.height)
+          : bottomHeight;
+
+      if (height < 0 || height >= this.height)
+        throw new Error(
+          `Split for bottom with height of ${height} is outside of parent's height (0, ${this.height}).`
+        );
+
+      const top = new Box({
+        computedOrConstantWidth: () => this.width,
+        computedOrConstantHeight: () => this.height - height,
+        computedOrConstantXOffset: () => this.xOffset,
+        computedOrConstantYOffset: () => this.yOffset,
+        shell: this.shell,
+        zIndex: new CompoundZIndex([
+          ...this.zIndex.indexes,
+          this.layerIncrement,
+        ]),
+      });
+      this.layerIncrement++;
+      const bottom = new Box({
+        computedOrConstantWidth: () => this.width,
+        computedOrConstantHeight: () => height,
+        computedOrConstantXOffset: () => this.xOffset,
+        computedOrConstantYOffset: () => this.yOffset + top.height,
+        shell: this.shell,
+        zIndex: new CompoundZIndex([
+          ...this.zIndex.indexes,
+          this.layerIncrement,
+        ]),
+      });
+      this.layerIncrement++;
+
+      return { top, bottom };
+    }
+
     const top = new Box({
       computedOrConstantWidth: () => this.width,
-      computedOrConstantHeight: () => Math.floor(this.height / 2),
+      computedOrConstantHeight: () => Math.round(this.height / 2),
       computedOrConstantXOffset: () => this.xOffset,
       computedOrConstantYOffset: () => this.yOffset,
       shell: this.shell,
-      zIndex: new CompoundZIndex([...this.zIndex.indexes, 0]),
+      zIndex: new CompoundZIndex([...this.zIndex.indexes, this.layerIncrement]),
     });
+    this.layerIncrement++;
     const bottom = new Box({
       computedOrConstantWidth: () => this.width,
-      computedOrConstantHeight: () => Math.floor(this.height / 2),
+      computedOrConstantHeight: () => this.height - top.height,
       computedOrConstantXOffset: () => this.xOffset,
-      computedOrConstantYOffset: () =>
-        this.yOffset + (this.height - Math.floor(this.height / 2)),
+      computedOrConstantYOffset: () => this.yOffset + top.height,
       shell: this.shell,
-      zIndex: new CompoundZIndex([...this.zIndex.indexes, 1]),
+      zIndex: new CompoundZIndex([...this.zIndex.indexes, this.layerIncrement]),
     });
+    this.layerIncrement++;
 
     return {
       top,
@@ -392,6 +486,41 @@ export class Box extends Layer {
     return {
       left,
       right,
+    };
+  }
+
+  get topLeft() {
+    return {
+      x: this.xOffset,
+      y: this.yOffset,
+    };
+  }
+
+  get topRight() {
+    return {
+      x: this.width + this.xOffset,
+      y: this.yOffset,
+    };
+  }
+
+  get middle() {
+    return {
+      x: Math.floor(this.width / 2) + this.xOffset,
+      y: Math.floor(this.height / 2) + this.yOffset,
+    };
+  }
+
+  get bottomRight() {
+    return {
+      x: this.width + this.xOffset,
+      y: this.height + this.yOffset,
+    };
+  }
+
+  get bottomLeft() {
+    return {
+      x: this.xOffset,
+      y: this.height + this.yOffset,
     };
   }
 }
