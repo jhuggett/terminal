@@ -53,7 +53,7 @@ export class PointGrid {
   }
 
   getChangedPoints() {
-    return Array.from(this.changedPoints.values()).map((key) => {
+    const points = Array.from(this.changedPoints.values()).map((key) => {
       const coordinate = this.keyToCoordinate(key);
       const stack = this.getPointStackAt(coordinate);
       const point = stack?.highestPoint;
@@ -62,6 +62,7 @@ export class PointGrid {
         point,
       };
     });
+    return  points
   }
 
   flushNotedChanges() {

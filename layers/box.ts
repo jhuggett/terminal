@@ -7,36 +7,52 @@ import { Layer } from "./layer.ts";
 type ComputedOrConstantNumber = number | (() => number);
 
 export class Box extends Layer {
+  private cached_width?: number
   get width() {
-    if (typeof this.computedOrConstantWidth === "number")
-      return this.computedOrConstantWidth;
-    if (typeof this.computedOrConstantWidth === "function")
-      return this.computedOrConstantWidth();
-    throw new Error("Invalid computed or constant width.");
+    if (this.cached_width === undefined) {
+      if (typeof this.computedOrConstantWidth === "number")
+        this.cached_width = this.computedOrConstantWidth;
+      else if (typeof this.computedOrConstantWidth === "function")
+        this.cached_width =  this.computedOrConstantWidth();
+      else throw new Error("Invalid computed or constant width.");
+    }
+    return this.cached_width 
   }
 
+  private cached_height?: number
   get height() {
-    if (typeof this.computedOrConstantHeight === "number")
-      return this.computedOrConstantHeight;
-    if (typeof this.computedOrConstantHeight === "function")
-      return this.computedOrConstantHeight();
-    throw new Error("Invalid computed or constant height.");
+    if (this.cached_height === undefined) {
+      if (typeof this.computedOrConstantHeight === "number")
+        this.cached_height = this.computedOrConstantHeight;
+      else if (typeof this.computedOrConstantHeight === "function")
+        this.cached_height = this.computedOrConstantHeight();
+      else throw new Error("Invalid computed or constant height.");
+    }
+    return this.cached_height
   }
 
+  private cached_x_offset?: number
   get xOffset() {
-    if (typeof this.computedOrConstantXOffset === "number")
-      return this.computedOrConstantXOffset;
-    if (typeof this.computedOrConstantXOffset === "function")
-      return this.computedOrConstantXOffset();
-    throw new Error("Invalid computed or constant x offset.");
+    if (this.cached_x_offset === undefined) {
+      if (typeof this.computedOrConstantXOffset === "number")
+        this.cached_x_offset = this.computedOrConstantXOffset;
+      else if (typeof this.computedOrConstantXOffset === "function")
+        this.cached_x_offset = this.computedOrConstantXOffset();
+      else throw new Error("Invalid computed or constant x offset.");
+    }
+    return this.cached_x_offset
   }
 
+  private cached_y_offset?: number
   get yOffset() {
-    if (typeof this.computedOrConstantYOffset === "number")
-      return this.computedOrConstantYOffset;
-    if (typeof this.computedOrConstantYOffset === "function")
-      return this.computedOrConstantYOffset();
-    throw new Error("Invalid computed or constant y offset.");
+    if (this.cached_y_offset === undefined) {
+      if (typeof this.computedOrConstantYOffset === "number")
+        this.cached_y_offset = this.computedOrConstantYOffset;
+      else if (typeof this.computedOrConstantYOffset === "function")
+        this.cached_y_offset = this.computedOrConstantYOffset();
+      else throw new Error("Invalid computed or constant y offset.");
+    }
+    return this.cached_y_offset
   }
 
   private computedOrConstantWidth: ComputedOrConstantNumber;
@@ -72,6 +88,15 @@ export class Box extends Layer {
     this.shell = shell;
     this.zIndex = zIndex;
     this.parent = parent;
+  }
+
+  debugInfo() {
+    return {
+      width: this.width,
+      height: this.height,
+      xOffset: this.xOffset,
+      yOffset: this.yOffset
+    }
   }
 
   cursor: XY = {

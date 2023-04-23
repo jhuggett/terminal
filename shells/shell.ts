@@ -18,6 +18,13 @@ export abstract class Shell {
 
   protected abstract readStandardIn(): Promise<Uint8Array>;
 
+  debugInfo() {
+    return {
+      width: this.width,
+      height: this.height
+    }
+  }
+
   private cursorIsShown?: boolean;
   showCursor(show: boolean) {
     if (this.cursorIsShown !== show) {
@@ -77,7 +84,13 @@ export abstract class Shell {
       coordinate: { x, y },
     } of this.pointGrid.getChangedPoints()) {
       content += point ? rendering(point) : moveTo(x, y) + " ";
+      // write in batches to support Window's max line length
+      if (content.length > 4000) {
+        this.writeToStandardOut(content)
+        content = ''
+      }
     }
+    
 
     this.writeToStandardOut(content);
     this.pointGrid.flushNotedChanges();

@@ -3,12 +3,21 @@ import { Shell } from "./shell.ts";
 export class DenoShell extends Shell {
   debugMode = false;
 
+  private cached_width?: number 
   get width() {
-    return Deno.consoleSize(Deno.stdout.rid).columns;
+    if (this.cached_width === undefined) {
+      this.cached_width = Deno.consoleSize().columns;
+    } 
+    return this.cached_width
   }
 
+  private cached_height?: number
   get height() {
-    return Deno.consoleSize(Deno.stdout.rid).rows;
+    return Deno.consoleSize().rows || 0
+    // if (this.cached_height === undefined) {
+    //   this.cached_height = Deno.consoleSize().rows;
+    // } 
+    // return this.cached_height;
   }
 
   protected writeToStandardOut(contents: string) {
