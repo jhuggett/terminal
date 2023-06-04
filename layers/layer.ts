@@ -81,4 +81,13 @@ export abstract class Layer {
     const translatedCoordinate = this.applyShellOffset(coordinate);
     this.shell.bufferedClear(translatedCoordinate, this.zIndex);
   }
+
+  protected notifyOnCachedDimensionsInvalidation: Map<string, () => void> =
+    new Map();
+  listenForCachedDimensionsInvalidation(layer: Layer, callback: () => void) {
+    this.notifyOnCachedDimensionsInvalidation.set(
+      layer.zIndex.stringRepresentation,
+      callback
+    );
+  }
 }

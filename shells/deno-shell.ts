@@ -3,21 +3,8 @@ import { Shell } from "./shell.ts";
 export class DenoShell extends Shell {
   debugMode = false;
 
-  private cached_width?: number 
-  get width() {
-    if (this.cached_width === undefined) {
-      this.cached_width = Deno.consoleSize().columns;
-    } 
-    return this.cached_width
-  }
-
-  private cached_height?: number
-  get height() {
-    return Deno.consoleSize().rows || 0
-    // if (this.cached_height === undefined) {
-    //   this.cached_height = Deno.consoleSize().rows;
-    // } 
-    // return this.cached_height;
+  protected getShellSize() {
+    return Deno.consoleSize();
   }
 
   protected writeToStandardOut(contents: string) {
@@ -40,5 +27,12 @@ export class DenoShell extends Shell {
     const filledBuf = buf.slice(0, bytesRead);
 
     return filledBuf;
+  }
+
+  onWindowResize(onEvent: () => void) {
+    Deno.addSignalListener("SIGWINCH", onEvent);
+    return {
+      stopListening: () => Deno.removeSignalListener("SIGWINCH", onEvent),
+    };
   }
 }

@@ -11,18 +11,44 @@ export abstract class Shell {
   protected isRaw?: boolean;
   abstract setRaw(on: boolean): void;
 
-  abstract get width(): number;
-  abstract get height(): number;
+  private cached_width?: number;
+  get width() {
+    if (this.cached_width === undefined) {
+      this.cached_width = this.getShellSize().columns;
+    }
+    return this.cached_width;
+  }
+
+  private cached_height?: number;
+  get height() {
+    if (this.cached_height === undefined) {
+      this.cached_height = this.getShellSize().rows;
+    }
+    return this.cached_height;
+  }
+
+  invalidateCachedSize() {
+    this.cached_width = undefined;
+    this.cached_height = undefined;
+  }
+
+  protected abstract getShellSize(): { rows: number; columns: number };
 
   protected abstract writeToStandardOut(contents: string): void;
 
   protected abstract readStandardIn(): Promise<Uint8Array>;
 
+  abstract onWindowResize(onEvent: () => void): { stopListening: () => void };
+
   debugInfo() {
     return {
       width: this.width,
-      height: this.height
-    }
+      height: this.height,
+    };
+  }
+
+  get hasChangedPoints() {
+    return this.pointGrid.hasChangedPoints;
   }
 
   private cursorIsShown?: boolean;
@@ -82,15 +108,15 @@ export abstract class Shell {
     for (const {
       point,
       coordinate: { x, y },
+      stack,
     } of this.pointGrid.getChangedPoints()) {
-      content += point ? rendering(point) : moveTo(x, y) + " ";
+      content += stack && point ? rendering(point, stack) : moveTo(x, y) + " ";
       // write in batches to support Window's max line length
       if (content.length > 4000) {
-        this.writeToStandardOut(content)
-        content = ''
+        this.writeToStandardOut(content);
+        content = "";
       }
     }
-    
 
     this.writeToStandardOut(content);
     this.pointGrid.flushNotedChanges();

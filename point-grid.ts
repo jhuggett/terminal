@@ -6,6 +6,10 @@ export class PointGrid {
   private pointStacks: Map<string, PointStack> = new Map();
   private changedPoints: Set<string> = new Set();
 
+  get hasChangedPoints() {
+    return this.changedPoints.size > 0;
+  }
+
   private coordinateToKey({ x, y }: XY) {
     return `${x},${y}`;
   }
@@ -38,7 +42,11 @@ export class PointGrid {
       this.pointStacks.set(this.coordinateToKey(point.coordinate), stack);
     }
     const existingPoint = stack.get(point.zIndex);
-    if (existingPoint && rendering(existingPoint) === rendering(point)) return;
+    if (
+      existingPoint &&
+      rendering(existingPoint, stack) === rendering(point, stack)
+    )
+      return;
     stack.set(point);
   }
 
@@ -60,9 +68,10 @@ export class PointGrid {
       return {
         coordinate,
         point,
+        stack,
       };
     });
-    return  points
+    return points;
   }
 
   flushNotedChanges() {

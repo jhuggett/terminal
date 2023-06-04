@@ -1,4 +1,5 @@
 import { multidimensionalRange } from "../deps.ts";
+import { OutOfBoundsError } from "../mod.ts";
 import { CompoundZIndex, Point } from "../point.ts";
 import { Shell } from "../shells/shell.ts";
 import { XY, XYSet } from "../xy.ts";
@@ -7,19 +8,19 @@ import { Layer } from "./layer.ts";
 type ComputedOrConstantNumber = number | (() => number);
 
 export class Box extends Layer {
-  private cached_width?: number
+  private cached_width?: number;
   get width() {
     if (this.cached_width === undefined) {
       if (typeof this.computedOrConstantWidth === "number")
         this.cached_width = this.computedOrConstantWidth;
       else if (typeof this.computedOrConstantWidth === "function")
-        this.cached_width =  this.computedOrConstantWidth();
+        this.cached_width = this.computedOrConstantWidth();
       else throw new Error("Invalid computed or constant width.");
     }
-    return this.cached_width 
+    return this.cached_width;
   }
 
-  private cached_height?: number
+  private cached_height?: number;
   get height() {
     if (this.cached_height === undefined) {
       if (typeof this.computedOrConstantHeight === "number")
@@ -28,10 +29,10 @@ export class Box extends Layer {
         this.cached_height = this.computedOrConstantHeight();
       else throw new Error("Invalid computed or constant height.");
     }
-    return this.cached_height
+    return this.cached_height;
   }
 
-  private cached_x_offset?: number
+  private cached_x_offset?: number;
   get xOffset() {
     if (this.cached_x_offset === undefined) {
       if (typeof this.computedOrConstantXOffset === "number")
@@ -40,10 +41,10 @@ export class Box extends Layer {
         this.cached_x_offset = this.computedOrConstantXOffset();
       else throw new Error("Invalid computed or constant x offset.");
     }
-    return this.cached_x_offset
+    return this.cached_x_offset;
   }
 
-  private cached_y_offset?: number
+  private cached_y_offset?: number;
   get yOffset() {
     if (this.cached_y_offset === undefined) {
       if (typeof this.computedOrConstantYOffset === "number")
@@ -52,7 +53,18 @@ export class Box extends Layer {
         this.cached_y_offset = this.computedOrConstantYOffset();
       else throw new Error("Invalid computed or constant y offset.");
     }
-    return this.cached_y_offset
+    return this.cached_y_offset;
+  }
+
+  invalidateCachedDimensions() {
+    this.cached_height = undefined;
+    this.cached_width = undefined;
+    this.cached_x_offset = undefined;
+    this.cached_y_offset = undefined;
+
+    this.notifyOnCachedDimensionsInvalidation.forEach((callback) => {
+      callback();
+    });
   }
 
   private computedOrConstantWidth: ComputedOrConstantNumber;
@@ -87,16 +99,24 @@ export class Box extends Layer {
     this.computedOrConstantYOffset = computedOrConstantYOffset || 0;
     this.shell = shell;
     this.zIndex = zIndex;
+
+    parent?.listenForCachedDimensionsInvalidation(this, () => {
+      this.invalidateCachedDimensions();
+    });
+
     this.parent = parent;
   }
 
+  debugLabel?: string;
   debugInfo() {
     return {
+      debugLabel: this.debugLabel,
       width: this.width,
       height: this.height,
       xOffset: this.xOffset,
-      yOffset: this.yOffset
-    }
+      yOffset: this.yOffset,
+      zIndex: this.zIndex.stringRepresentation,
+    };
   }
 
   cursor: XY = {
@@ -120,7 +140,7 @@ export class Box extends Layer {
         if (x >= 0 && x < this.width) {
           this.cursor.x = x;
         } else {
-          throw new Error(`Cursor x is out of bounds.`);
+          throw new OutOfBoundsError(`Cursor x (${x}) is out of bounds.`, "x");
         }
       }
     }
@@ -133,10 +153,15 @@ export class Box extends Layer {
         if (y >= 0 && y < this.height) {
           this.cursor.y = y;
         } else {
-          throw new Error(`Cursor y is out of bounds.`);
+          throw new OutOfBoundsError(`Cursor y (${y}) is out of bounds.`, "y");
         }
       }
     }
+  }
+
+  carriageReturn() {
+    this.moveCursorVertically(1);
+    this.moveCursorTo({ x: "start" });
   }
 
   moveCursorHorizontally(steps: number, shouldCarriageReturn = true) {
@@ -147,15 +172,24 @@ export class Box extends Layer {
         this.cursor.x = 0;
         return;
       }
-      throw new Error("Attempting to move cursor out of bounds horizontally.");
+      throw new OutOfBoundsError(
+        "Attempting to move cursor out of bounds horizontally.",
+        "x"
+      );
     }
     this.cursor.x = proposedX;
   }
 
   moveCursorVertically(steps: number) {
     const proposedY = this.cursor.y + steps;
+
     if (proposedY < 0 || proposedY > this.height) {
-      throw new Error("Attempting to move cursor out of bounds vertically.");
+      console.log("throwing", this);
+
+      throw new OutOfBoundsError(
+        "Attempting to move cursor out of bounds vertically.",
+        "y"
+      );
     }
     this.cursor.y = proposedY;
   }
@@ -172,14 +206,26 @@ export class Box extends Layer {
     }
   }
 
-  fill(pointTraits: Omit<Point, "zIndex" | "coordinate">) {
+  fill(
+    pointTraits:
+      | Omit<Point, "zIndex" | "coordinate">
+      | (() => Omit<Point, "zIndex" | "coordinate">)
+  ) {
     this.moveCursorTo({ x: "start", y: "start" });
     for (let i = 0; i < this.width * this.height; i++) {
-      this.bufferedWriteCharacter(pointTraits);
+      this.bufferedWriteCharacter(
+        typeof pointTraits === "function" ? pointTraits() : pointTraits
+      );
     }
   }
 
-  bufferedWriteCharacter(pointTraits: Omit<Point, "zIndex" | "coordinate">) {
+  bufferedWriteCharacter(
+    pointTraits: Omit<Point, "zIndex" | "coordinate">,
+    at?: XY
+  ) {
+    if (at) {
+      this.moveCursorTo(at);
+    }
     this.set({
       ...pointTraits,
       coordinate: { ...this.cursor },
@@ -305,16 +351,27 @@ export class Box extends Layer {
     height,
     xOffset,
     yOffset,
+    newZIndexGroup = true,
   }: {
     width?: number;
     height?: number;
     xOffset?: number | "middle" | "right";
     yOffset?: number | "middle" | "bottom";
+    newZIndexGroup?: boolean;
   }) {
     const box = new Box({
+      parent: this,
       shell: this.shell,
-      zIndex: new CompoundZIndex([...this.zIndex.indexes, this.layerIncrement]),
+      zIndex: new CompoundZIndex(
+        newZIndexGroup
+          ? [...this.zIndex.indexes, 0]
+          : [...this.zIndex.indexes.slice(0, -1), this.layerIncrement]
+      ),
     });
+
+    if (!newZIndexGroup) {
+      this.layerIncrement++;
+    } else box.layerIncrement++;
 
     if (width) {
       if (width < 1) {
@@ -368,7 +425,6 @@ export class Box extends Layer {
       box.computedOrConstantYOffset = this.yOffset;
     }
 
-    this.layerIncrement++;
     return box;
   }
 
@@ -396,29 +452,33 @@ export class Box extends Layer {
         );
 
       const top = new Box({
+        parent: this,
         computedOrConstantWidth: () => this.width,
         computedOrConstantHeight: () => height,
         computedOrConstantXOffset: () => this.xOffset,
         computedOrConstantYOffset: () => this.yOffset,
         shell: this.shell,
         zIndex: new CompoundZIndex([
-          ...this.zIndex.indexes,
+          ...this.zIndex.indexes.slice(0, -1),
           this.layerIncrement,
         ]),
       });
       this.layerIncrement++;
+      top.layerIncrement = this.layerIncrement;
       const bottom = new Box({
+        parent: this,
         computedOrConstantWidth: () => this.width,
         computedOrConstantHeight: () => this.height - height,
         computedOrConstantXOffset: () => this.xOffset,
         computedOrConstantYOffset: () => this.yOffset + top.height,
         shell: this.shell,
         zIndex: new CompoundZIndex([
-          ...this.zIndex.indexes,
+          ...this.zIndex.indexes.slice(0, -1),
           this.layerIncrement,
         ]),
       });
       this.layerIncrement++;
+      bottom.layerIncrement = this.layerIncrement;
 
       return { top, bottom };
     }
@@ -437,51 +497,65 @@ export class Box extends Layer {
         );
 
       const top = new Box({
+        parent: this,
         computedOrConstantWidth: () => this.width,
         computedOrConstantHeight: () => this.height - height,
         computedOrConstantXOffset: () => this.xOffset,
         computedOrConstantYOffset: () => this.yOffset,
         shell: this.shell,
         zIndex: new CompoundZIndex([
-          ...this.zIndex.indexes,
+          ...this.zIndex.indexes.slice(0, -1),
           this.layerIncrement,
         ]),
       });
       this.layerIncrement++;
+      top.layerIncrement = this.layerIncrement;
       const bottom = new Box({
+        parent: this,
         computedOrConstantWidth: () => this.width,
         computedOrConstantHeight: () => height,
         computedOrConstantXOffset: () => this.xOffset,
         computedOrConstantYOffset: () => this.yOffset + top.height,
         shell: this.shell,
         zIndex: new CompoundZIndex([
-          ...this.zIndex.indexes,
+          ...this.zIndex.indexes.slice(0, -1),
           this.layerIncrement,
         ]),
       });
       this.layerIncrement++;
+      bottom.layerIncrement = this.layerIncrement;
 
       return { top, bottom };
     }
 
     const top = new Box({
+      parent: this,
       computedOrConstantWidth: () => this.width,
       computedOrConstantHeight: () => Math.round(this.height / 2),
       computedOrConstantXOffset: () => this.xOffset,
       computedOrConstantYOffset: () => this.yOffset,
       shell: this.shell,
-      zIndex: new CompoundZIndex([...this.zIndex.indexes, this.layerIncrement]),
+      zIndex: new CompoundZIndex([
+        ...this.zIndex.indexes.slice(0, -1),
+        this.layerIncrement,
+      ]),
     });
     this.layerIncrement++;
+    top.layerIncrement = this.layerIncrement;
     const bottom = new Box({
+      parent: this,
       computedOrConstantWidth: () => this.width,
       computedOrConstantHeight: () => this.height - top.height,
       computedOrConstantXOffset: () => this.xOffset,
       computedOrConstantYOffset: () => this.yOffset + top.height,
       shell: this.shell,
-      zIndex: new CompoundZIndex([...this.zIndex.indexes, this.layerIncrement]),
+      zIndex: new CompoundZIndex([
+        ...this.zIndex.indexes.slice(0, -1),
+        this.layerIncrement,
+      ]),
     });
     this.layerIncrement++;
+    bottom.layerIncrement = this.layerIncrement;
 
     return {
       top,
@@ -491,23 +565,34 @@ export class Box extends Layer {
 
   splitHorizontally() {
     const left = new Box({
+      parent: this,
       computedOrConstantWidth: () => Math.floor(this.width / 2),
       computedOrConstantHeight: () => this.height,
       computedOrConstantXOffset: () => this.xOffset,
       computedOrConstantYOffset: () => this.yOffset,
       shell: this.shell,
-      zIndex: new CompoundZIndex([...this.zIndex.indexes, 0]),
+      zIndex: new CompoundZIndex([
+        ...this.zIndex.indexes.slice(0, -1),
+        this.layerIncrement,
+      ]),
     });
+    this.layerIncrement++;
+    left.layerIncrement = this.layerIncrement;
     const right = new Box({
+      parent: this,
       computedOrConstantWidth: () => Math.floor(this.width / 2),
       computedOrConstantHeight: () => this.height,
       computedOrConstantXOffset: () =>
         this.xOffset + (this.width - Math.floor(this.width / 2)),
       computedOrConstantYOffset: () => this.yOffset,
       shell: this.shell,
-      zIndex: new CompoundZIndex([...this.zIndex.indexes, 1]),
+      zIndex: new CompoundZIndex([
+        ...this.zIndex.indexes.slice(0, -1),
+        this.layerIncrement,
+      ]),
     });
-
+    this.layerIncrement++;
+    right.layerIncrement = this.layerIncrement;
     return {
       left,
       right,
