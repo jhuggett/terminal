@@ -74,10 +74,18 @@ export abstract class Shell {
     return this.pointGrid.find(coordinate, zIndex);
   }
 
+  copyPointGrid() {
+    return this.pointGrid.copy();
+  }
+
+  loadPointGrid(pointGrid: PointGrid) {
+    this.pointGrid = pointGrid;
+  }
+
   protected pointGrid: PointGrid = new PointGrid();
 
   /**
-   * Writes the point to the grid of point stacks.∂
+   * Writes the point to the grid of point stacks.
    */
   bufferedWrite(point: Point) {
     this.pointGrid.set(point);

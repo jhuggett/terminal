@@ -6,6 +6,17 @@ export class PointGrid {
   private pointStacks: Map<string, PointStack> = new Map();
   private changedPoints: Set<string> = new Set();
 
+  copy() {
+    return PointGrid.from(new Map(this.pointStacks), new Set(this.changedPoints))
+  }
+
+  static from(pointStacks: Map<string, PointStack>, changedPoints: Set<string>) {
+    const grid = new PointGrid();
+    grid.pointStacks = pointStacks;
+    grid.changedPoints = changedPoints;
+    return grid;
+  }
+
   get hasChangedPoints() {
     return this.changedPoints.size > 0;
   }

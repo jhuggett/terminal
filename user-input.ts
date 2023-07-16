@@ -23,11 +23,61 @@ type InputInformation = {
   key: string;
 };
 
+/*
+
+target map merging & target chaining
+
+*/
+
+type TargetKey = Key | OtherUserInputKeys
+type TargetCallback = (info: InputInformation) => void | 'stop propagation'
+
+class TargetChain {
+   constructor(private links: TargetCallback[]) {
+
+   }
+
+  execute(info: InputInformation) {
+    for (const link of this.links) {
+      const result = link(info) 
+      // on receiving a truthy response, stop executing the chain
+      if (result === 'stop propagation') return
+    }
+  }
+
+  push(chain: TargetChain) {
+    this.links.push(...chain.links)
+  }
+}
+
+export class TargetMap {
+  map: Map<TargetKey, TargetChain> = new Map()
+
+  constructor(targets: UserInputTargets) {
+    Object.entries(targets).forEach(([key, value]) => {
+      this.map.set(key as TargetKey, new TargetChain([value]))
+    })
+  }
+
+  merge = (other: TargetMap) => {
+    other.map.forEach((chain, key) => {
+      const existingChain = this.map.get(key)
+      if (existingChain) {
+        existingChain.push(chain)
+      } else {
+        this.map.set(key, chain)
+      }
+    })
+  }
+}
+
+export type UserInputTargets = Partial<
+  Record<TargetKey, TargetCallback>
+>
+
 export const userInput = async (
   shell: Shell,
-  targets: Partial<
-    Record<Key | OtherUserInputKeys, (info: InputInformation) => void>
-  >
+  targetMap: TargetMap
 ) => {
   const bytes = await shell.keypress();
   const byteArray = Array.from(bytes.values());
@@ -56,24 +106,24 @@ export const userInput = async (
     key,
   };
 
-  const specificTarget = targets[key];
-  if (specificTarget) return specificTarget(info);
+  const specificTarget = targetMap.map.get(key);
+  if (specificTarget) return specificTarget.execute(info);
 
-  const anyLowercaseCharacter = targets["Any lowercase character"];
+  const anyLowercaseCharacter = targetMap.map.get("Any lowercase character");
   if (anyLowercaseCharacter && isLowercaseCharacter(byteArray)) {
-    return anyLowercaseCharacter(info);
+    return anyLowercaseCharacter.execute(info);
   }
 
-  const anyUppercaseCharacter = targets["Any uppercase character"];
+  const anyUppercaseCharacter = targetMap.map.get("Any uppercase character");
   if (anyUppercaseCharacter && isUppercaseCharacter(byteArray)) {
-    return anyUppercaseCharacter(info);
+    return anyUppercaseCharacter.execute(info);
   }
 
-  const anyCharacter = targets["Any character"];
+  const anyCharacter = targetMap.map.get("Any character");
   if (anyCharacter && isLowercaseOrUppercaseCharacter(byteArray)) {
-    return anyCharacter(info);
+    return anyCharacter.execute(info);
   }
 
-  const anyKey = targets["Any key"];
-  if (anyKey) return anyKey(info);
+  const anyKey = targetMap.map.get("Any key");
+  if (anyKey) return anyKey.execute(info);
 };
