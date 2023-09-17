@@ -7,9 +7,49 @@ const clearScreen = `\u001b[2J`;
 const hideCursor = `\u001b[?25lm`;
 const showCursor = `\u001b[?25hm`;
 
+// CZI = Compound Z Index
+
+export class CZIRegistry {
+  CZITallies: number[] = [];
+
+  private updateCZITally(czi: CompoundZIndex) {
+    for (const [i, index] of czi.indexes.entries()) {
+      if (this.CZITallies[i] === undefined) {
+        this.CZITallies.push(index);
+      } else {
+        this.CZITallies[i] = Math.max(this.CZITallies[i], index);
+      }
+    }
+  }
+
+  newCZIInCurrentContext(czi: CompoundZIndex) {
+    const length = czi.length;
+    const tally = this.CZITallies[length - 1] || 0;
+
+    const newCZI = new CompoundZIndex([...czi.indexes.slice(0, -1), tally + 1]);
+
+    this.updateCZITally(newCZI);
+
+    return newCZI;
+  }
+
+  newCZIInNextContext(czi: CompoundZIndex) {
+    const length = czi.length;
+    const tally = this.CZITallies[length] || 0;
+
+    const newCZI = new CompoundZIndex([...czi.indexes, tally + 1]);
+
+    this.updateCZITally(newCZI);
+
+    return newCZI;
+  }
+}
+
 export abstract class Shell {
   protected isRaw?: boolean;
   abstract setRaw(on: boolean): void;
+
+  registry = new CZIRegistry();
 
   private cached_width?: number;
   get width() {

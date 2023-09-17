@@ -1,3 +1,4 @@
+import { Box } from "../../treasure/deps.ts";
 import { CompoundZIndex, Point } from "../point.ts";
 import { Shell } from "../shells/shell.ts";
 import { XY } from "../xy.ts";
@@ -7,6 +8,37 @@ export class OutOfBoundsError extends Error {
     super(msg);
   }
 }
+
+export const portion = {
+  full: () =>
+    select([
+      [1, 1],
+      [0, 0],
+      [1, 1],
+    ]),
+};
+
+export const margined = (parent: Box, x: number, y: number) =>
+  select([
+    [parent.width, parent.height],
+    [x, y],
+    [parent.width - x, parent.height - y],
+  ]);
+
+export const select = ([division, start, end]: [number, number][]) => ({
+  division: {
+    x: division[0],
+    y: division[1],
+  },
+  start: {
+    x: start[0],
+    y: start[1],
+  },
+  end: {
+    x: end[0],
+    y: end[1],
+  },
+});
 
 export abstract class Layer {
   abstract get width(): number;
@@ -37,13 +69,19 @@ export abstract class Layer {
   }
 
   verifyXWithinBounds(x: number) {
-    if (x < 0 || x >= this.width)
-      throw new OutOfBoundsError(`Point is out of bounds for layer.`, "x");
+    if (x < 0 || x > this.width)
+      throw new OutOfBoundsError(
+        `Point is out of bounds for layer. x: ${x}, width: ${this.width}`,
+        "x"
+      );
   }
 
   verifyYWithinBounds(y: number) {
-    if (y < 0 || y >= this.height)
-      throw new OutOfBoundsError(`Point is out of bounds for layer.`, "y");
+    if (y < 0 || y > this.height)
+      throw new OutOfBoundsError(
+        `Point is out of bounds for layer. y: ${y}, height: ${this.height}`,
+        "y"
+      );
   }
 
   protected set(point: Omit<Point, "zIndex">) {
