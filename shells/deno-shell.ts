@@ -1,4 +1,3 @@
-import { XY } from "../mod.ts";
 import { Shell } from "./shell.ts";
 
 const sleep = (amount: number) =>
