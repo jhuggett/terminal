@@ -13,4 +13,6 @@ export enum MiscEscapeCode {
   MakeCursorVisible = "?25h",
   RestoreScreen = "?47l",
   SaveScreen = "?47h",
+
+  EnableMouseTracking = "?1003h",
 }

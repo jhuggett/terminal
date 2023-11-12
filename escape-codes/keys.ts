@@ -1,19 +1,46 @@
-export const isLowercaseCharacter = (key: number[]) => {
+export const isLowercaseLetter = (key: number[]) => {
   if (key.length !== 1) return false;
   const [num] = key;
   if (num > 96 && num < 123) return true;
   return false;
 };
 
-export const isUppercaseCharacter = (key: number[]) => {
+export const isUppercaseLetter = (key: number[]) => {
   if (key.length !== 1) return false;
   const [num] = key;
   if (num > 64 && num < 91) return true;
   return false;
 };
 
-export const isLowercaseOrUppercaseCharacter = (key: number[]) => {
-  return isLowercaseCharacter(key) || isUppercaseCharacter(key);
+export const isLowercaseOrUppercaseLetter = (key: number[]) => {
+  return isLowercaseLetter(key) || isUppercaseLetter(key);
+};
+
+export const isNumber = (key: number[]) => {
+  if (key.length !== 1) return false;
+  const [num] = key;
+  if (num > 47 && num < 58) return true;
+  return false;
+};
+
+export const isSymbol = (key: number[]) => {
+  if (key.length !== 1) return false;
+  const [num] = key;
+  if (num === 32) return false; // that's the space key
+  if (num > 31 && num < 48) return true;
+  if (num > 57 && num < 65) return true;
+  if (num > 90 && num < 97) return true;
+  if (num > 122 && num < 127) return true;
+  return false;
+};
+
+export const isCharacter = (key: number[]) => {
+  return (
+    isLowercaseLetter(key) ||
+    isUppercaseLetter(key) ||
+    isNumber(key) ||
+    isSymbol(key)
+  );
 };
 
 export const Keys = {
@@ -81,10 +108,45 @@ export const Keys = {
   "57": "9",
   "48": "0",
 
+  "126": "~",
+  "96": "`",
+  "33": "!",
+  "64": "@",
+  "35": "#",
+  "36": "$",
+  "37": "%",
+  "94": "^",
+  "38": "&",
+  "42": "*",
+  "40": "(",
+  "41": ")",
+  "95": "_",
+  "45": "-",
+  "43": "+",
+  "61": "=",
+  "123": "{",
+  "91": "[",
+  "125": "}",
+  "93": "]",
+  "124": "|",
+  "92": "\\",
+  "58": ":",
+  "59": ";",
+  "34": '"',
+  "39": "'",
+  "60": "<",
+  "44": ",",
+  "62": ">",
+  "46": ".",
+  "63": "?",
+  "47": "/",
+
   "27": "Escape",
   "9": "Tab",
   "32": "Space",
   "13": "Enter",
+  "8": "Backspace",
+  "127": "Delete",
 
   "27.91.65": "Arrow Up",
   "27.91.67": "Arrow Right",
@@ -92,4 +154,4 @@ export const Keys = {
   "27.91.68": "Arrow Left",
 } as const;
 
-export type Key = typeof Keys[keyof typeof Keys];
+export type Key = (typeof Keys)[keyof typeof Keys];

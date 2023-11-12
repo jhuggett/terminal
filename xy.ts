@@ -12,16 +12,28 @@ export interface XY {
   y: number;
 }
 
-export const combine = (coordinates: XY[]): XY => {
+export const combineXY = (coordinates: XY[]): XY => {
   if (coordinates.length === 0)
-    throw new Error("combine requires at least one coordinate");
+    throw new Error("combineXY requires at least one coordinate");
+  if (coordinates.length === 1) return { ...coordinates[0] };
+  const xy = { x: 0, y: 0 };
+  coordinates.forEach(({ x, y }) => {
+    xy.x += x;
+    xy.y += y;
+  });
+  return xy;
+};
+
+export const subtractXY = (coordinates: XY[]): XY => {
+  if (coordinates.length === 0)
+    throw new Error("subtractXY requires at least one coordinate");
   const xy = { ...coordinates[0] };
   if (coordinates.length === 1) {
     return xy;
   }
   coordinates.slice(1).forEach(({ x, y }) => {
-    xy.x += x;
-    xy.y += y;
+    xy.x -= x;
+    xy.y -= y;
   });
   return xy;
 };
@@ -74,11 +86,50 @@ export class XYSet {
     return this.coordinates.filter((xy) => !otherXYSet.has(xy));
   }
 
+  remove(coordinate: XY) {
+    this.xySet.delete(XYToString(coordinate));
+  }
+
   get coordinates() {
     return Array.from(this.xySet.values()).map((xy) => parseXY(xy));
   }
 
   static empty() {
     return new XYSet([]);
+  }
+
+  get size() {
+    return this.xySet.size;
+  }
+}
+
+export class XYMap<Value> {
+  private map: Map<string, Value>;
+  constructor() {
+    this.map = new Map();
+  }
+
+  set(coordinate: XY, value: Value) {
+    this.map.set(XYToString(coordinate), value);
+  }
+
+  get(coordinate: XY) {
+    return this.map.get(XYToString(coordinate));
+  }
+
+  delete(coordinate: XY) {
+    this.map.delete(XYToString(coordinate));
+  }
+
+  get coordinates() {
+    return Array.from(this.map.keys()).map((xy) => parseXY(xy));
+  }
+
+  get values() {
+    return Array.from(this.map.values());
+  }
+
+  get size() {
+    return this.map.size;
   }
 }
