@@ -102,6 +102,14 @@ export abstract class Shell {
     }
   }
 
+  enableMouseTracking() {
+    this.writeToStandardOut(enableMouseTracking);
+  }
+
+  disableMouseTracking() {
+    this.writeToStandardOut(stopMouseTracking);
+  }
+
   /**
    * Wait for keypress.
    */
@@ -113,11 +121,7 @@ export abstract class Shell {
       sense to just read the first key in buffer.
     */
 
-    this.writeToStandardOut(enableMouseTracking);
-
     const result = await this.readStandardIn();
-
-    this.writeToStandardOut(stopMouseTracking);
 
     const utf8 = new TextDecoder("utf-8").decode(result);
 

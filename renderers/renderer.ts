@@ -87,6 +87,8 @@ export function render(
 
   //chunks.push(moveTo(0, 0));
 
+  chunks.push(reset);
+
   if (decorativeCursorLocation) {
     chunks.push(moveTo(decorativeCursorLocation.x, decorativeCursorLocation.y));
   }

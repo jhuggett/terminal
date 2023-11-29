@@ -89,6 +89,11 @@ export class Cursor {
     this.location = { x: 0, y: this.location.y };
   }
 
+  newLine() {
+    this.moveDown();
+    this.carriageReturn();
+  }
+
   properties: PointProperties = {};
 
   private writeCharacter(character: string) {
@@ -123,8 +128,7 @@ export class Cursor {
         this.moveRight();
       } catch (error) {
         if (error instanceof OutOfBoundsError) {
-          this.moveDown();
-          this.carriageReturn();
+          if (this.autoNewLine) this.newLine();
         } else {
           throw error;
         }
@@ -146,5 +150,8 @@ export class Cursor {
         }
       }
     }
+    this.moveToStart();
   }
+
+  autoNewLine = true;
 }

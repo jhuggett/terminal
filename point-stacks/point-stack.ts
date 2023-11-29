@@ -88,17 +88,17 @@ export class PointStack {
         );
       }
 
-      if (compositePoint.properties.bold === undefined) {
-        compositePoint.properties.bold = point.properties.bold;
-      }
+      // if (compositePoint.properties.bold === undefined) {
+      //   compositePoint.properties.bold = point.properties.bold;
+      // }
 
-      if (compositePoint.properties.italic === undefined) {
-        compositePoint.properties.italic = point.properties.italic;
-      }
+      // if (compositePoint.properties.italic === undefined) {
+      //   compositePoint.properties.italic = point.properties.italic;
+      // }
 
-      if (compositePoint.properties.underline === undefined) {
-        compositePoint.properties.underline = point.properties.underline;
-      }
+      // if (compositePoint.properties.underline === undefined) {
+      //   compositePoint.properties.underline = point.properties.underline;
+      // }
 
       if (
         compositePoint.character === " " &&
@@ -108,11 +108,13 @@ export class PointStack {
           point.properties.foregroundColor &&
           compositePoint.properties.backgroundColor
         ) {
-          compositePoint.properties.foregroundColor = red();
-          // mergeRBGs(
-          //   compositePoint.properties.backgroundColor,
-          //   point.properties.foregroundColor
-          // );
+          compositePoint.properties.foregroundColor = mergeRBGs(
+            compositePoint.properties.backgroundColor,
+            point.properties.foregroundColor
+          );
+        } else if (point.properties.foregroundColor) {
+          compositePoint.properties.foregroundColor =
+            point.properties.foregroundColor;
         }
         compositePoint.character = point.character;
         compositePoint.properties.bold = point.properties.bold;

@@ -141,6 +141,16 @@ export class Element<Properties> {
     this.recalculateZ();
   }
 
+  setConstantZ(z: number) {
+    if (this.onParentZChangedSubscription) {
+      this.onParentZChangedSubscription.unsubscribe();
+    }
+    this.calculateZ = () => {
+      return z;
+    };
+    this.recalculateZ();
+  }
+
   inputMap: TargetMap = new TargetMap();
   on<T extends TargetKey>(key: T, callback: TargetCallback<T>) {
     this.inputMap.on(key, callback);
@@ -157,13 +167,6 @@ export class Element<Properties> {
   }
 
   clearThisAndEverythingAbove() {
-    /*
-      For some reason this notably slows down processing on large
-      windows, far after this method should end.
-
-      TODO: figure out why (currently at a complete loss)
-    */
-
     this.shell.clearWithinBounds(this.bounds, this.z);
   }
 

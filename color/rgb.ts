@@ -27,26 +27,30 @@ export function mergeRBGs(primary: RGB, secondary: RGB) {
   );
 }
 
-export const red = (brightness = 1) => rgb(Math.round(brightness * 255), 0, 0);
-export const green = (brightness = 1) =>
-  rgb(0, Math.round(brightness * 255), 0);
-export const blue = (brightness = 1) => rgb(0, 0, Math.round(brightness * 255));
-export const yellow = (brightness = 1) =>
-  rgb(Math.round(brightness * 255), Math.round(brightness * 255), 0);
-export const magenta = (brightness = 1) =>
-  rgb(Math.round(brightness * 255), 0, Math.round(brightness * 255));
-export const cyan = (brightness = 1) =>
-  rgb(0, Math.round(brightness * 255), Math.round(brightness * 255));
-export const white = (brightness = 1) =>
+export const red = (brightness = 1, opacity = 1) =>
+  rgb(Math.round(brightness * 255), 0, 0, opacity);
+export const green = (brightness = 1, opacity = 1) =>
+  rgb(0, Math.round(brightness * 255), 0, opacity);
+export const blue = (brightness = 1, opacity = 1) =>
+  rgb(0, 0, Math.round(brightness * 255), opacity);
+export const yellow = (brightness = 1, opacity = 1) =>
+  rgb(Math.round(brightness * 255), Math.round(brightness * 255), 0, opacity);
+export const magenta = (brightness = 1, opacity = 1) =>
+  rgb(Math.round(brightness * 255), 0, Math.round(brightness * 255), opacity);
+export const cyan = (brightness = 1, opacity = 1) =>
+  rgb(0, Math.round(brightness * 255), Math.round(brightness * 255), opacity);
+export const white = (brightness = 1, opacity = 1) =>
   rgb(
     Math.round(brightness * 255),
     Math.round(brightness * 255),
-    Math.round(brightness * 255)
+    Math.round(brightness * 255),
+    opacity
   );
-export const black = () => rgb(0, 0, 0);
-export const gray = (brightness = 1) =>
+export const black = (opacity = 1) => rgb(0, 0, 0, opacity);
+export const gray = (brightness = 1, opacity = 1) =>
   rgb(
     Math.round(brightness * 128),
     Math.round(brightness * 128),
-    Math.round(brightness * 128)
+    Math.round(brightness * 128),
+    opacity
   );

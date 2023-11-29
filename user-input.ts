@@ -62,7 +62,7 @@ export const mouseEventNumberToType = (
     case 65:
       return "Scroll down";
     default:
-      throw new Error(`Unknown mouse event number: ${num}`);
+      throw new UnknownKeyCodeError(`Unknown mouse event number: ${num}`);
   }
 };
 
