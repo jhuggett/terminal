@@ -1,8 +1,7 @@
 import { PointGrid } from "../point-stack-grids/point-stack-grid.ts";
 import { XY } from "../xy.ts";
 import { Element } from "../elements/element.ts";
-import { Point, PointProperties } from "../points/point.ts";
-import { Cursor } from "../cursors/cursor.ts";
+import { Point } from "../points/point.ts";
 import { BoxBounds } from "../bounds/box-bounds.ts";
 import { render } from "../renderers/renderer.ts";
 import { TargetMap, mouseEventNumberToType, userInput } from "../user-input.ts";
@@ -16,6 +15,13 @@ const stopMouseTracking = `\u001b[?1003l\u001b[?1015l\u001b[?1006l`;
 export abstract class Shell {
   protected isRaw?: boolean;
   abstract setRaw(on: boolean): void;
+
+  private renderBatchSize = 250;
+  // write in batches to support Window's max line length
+  // 250 doesn't seem to work with Bunjs on mac arm64
+  overrideRenderBatchSize(size: number) {
+    this.renderBatchSize = size;
+  }
 
   protected elementIDIncrement = 0;
   registerElement(element: Element<any>) {
@@ -218,8 +224,7 @@ export abstract class Shell {
 
     let content = render(points, this.decorativeCursorLocation);
 
-    // write in batches to support Window's max line length
-    const chunkSize = 250;
+    const chunkSize = this.renderBatchSize;
     for (let i = 0; i < content.length; i += chunkSize) {
       this.writeToStandardOut(content.slice(i, i + chunkSize).join(""));
     }
